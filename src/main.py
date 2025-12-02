@@ -18,7 +18,8 @@ def main(page: ft.Page):
     list_view = ft.ListView(expand=True, spacing=2, auto_scroll=False)
 
     # Right pane: image view inside a file drop target
-    image = ft.Image(expand=True, fit=ft.ImageFit.CONTAIN)
+    # Hide the image by default to avoid Flet showing the placeholder message
+    image = ft.Image(expand=True, fit=ft.ImageFit.CONTAIN, visible=False)
 
     status_text = ft.Text("Drop a .ico file here or use Open...", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
 
@@ -26,9 +27,11 @@ def main(page: ft.Page):
         data = controller.get_selected_png_bytes()
         if data:
             image.src_base64 = base64.b64encode(data).decode("ascii")
+            image.visible = True
             status_text.value = controller.get_selected_label() or ""
         else:
             image.src_base64 = None
+            image.visible = False
             status_text.value = "Drop a .ico file here or use Open..."
         image.update()
         status_text.update()
