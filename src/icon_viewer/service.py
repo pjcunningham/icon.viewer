@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 from typing import List, Dict, Tuple
 from PIL import Image
 
@@ -9,7 +10,8 @@ from .models import IconImage
 
 @dataclass
 class IconService:
-    """Service to load and parse Windows .ico files into individual images.
+    """Service to load and parse Windows .ico files into individual images,
+    and export selected images to various formats.
 
     Strategy for compatibility across Pillow versions:
     - Try to iterate frames via `n_frames` / `seek` to collect real frames and map by size.
@@ -75,3 +77,32 @@ class IconService:
             # Ensure final sort from smallest to largest
             images.sort(key=lambda ii: (ii.width * ii.height, ii.width, ii.height))
             return images
+
+    # --- Export API ---
+    def save_image_bytes(self, data: bytes, out_path: str, *, jpg_bg=(255, 255, 255), quality: int = 95) -> None:
+        """Save PNG bytes as either PNG or JPEG inferred by file extension.
+
+        - If `out_path` ends with .png → write bytes verbatim.
+        - If .jpg/.jpeg → convert to RGB and composite on `jpg_bg` to handle transparency.
+        - Otherwise raise ValueError.
+        """
+        if not data:
+            raise ValueError("No image data to save")
+        ext = Path(out_path).suffix.lower()
+        if ext == ".png":
+            with open(out_path, "wb") as f:
+                f.write(data)
+            return
+        if ext in (".jpg", ".jpeg"):
+            with Image.open(BytesIO(data)) as im:
+                im = im.convert("RGBA")
+                bg = Image.new("RGB", im.size, tuple(jpg_bg))
+                # Paste with alpha channel as mask if present
+                alpha = im.getchannel("A") if "A" in im.getbands() else None
+                bg.paste(im, mask=alpha)
+                buf = BytesIO()
+                bg.save(buf, format="JPEG", quality=int(quality))
+                with open(out_path, "wb") as f:
+                    f.write(buf.getvalue())
+            return
+        raise ValueError(f"Unsupported export extension: {ext}. Use .png, .jpg or .jpeg")

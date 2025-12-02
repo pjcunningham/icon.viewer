@@ -30,9 +30,53 @@ def main(page: ft.Page):
 
     status_text = ft.Text("Drop a .ico file here or use Open...", size=12, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER)
 
+    def _default_filename() -> str:
+        base = Path(controller.current_file).stem if controller.current_file else "image"
+        label = controller.get_selected_label() or ""
+        suffix = f"_{label}" if label else ""
+        # Default to .png; user can pick .jpg in the dialog
+        return f"{base}{suffix}.png"
+
+    # Save file picker and handler
+    def _on_save_result(e: ft.FilePickerResultEvent):
+        if not e.path:
+            return
+        data = controller.get_selected_png_bytes()
+        if not data:
+            page.snack_bar = ft.SnackBar(ft.Text("Nothing to save. Open an .ico and select a size."))
+            page.snack_bar.open = True
+            page.update()
+            return
+        try:
+            out_path = e.path
+            # Delegate format decision to service based on file extension
+            service.save_image_bytes(data, out_path)
+            page.snack_bar = ft.SnackBar(ft.Text(f"Saved to: {out_path}"))
+            page.snack_bar.open = True
+            page.update()
+        except Exception as ex:
+            page.snack_bar = ft.SnackBar(ft.Text(f"Failed to save: {ex}"))
+            page.snack_bar.open = True
+            page.update()
+
+    save_picker = ft.FilePicker(on_result=_on_save_result)
+    page.overlay.append(save_picker)
+
+    def _save(_: ft.ControlEvent | None = None):
+        suggested = _default_filename()
+        try:
+            save_picker.save_file(suggested_name=suggested, allowed_extensions=["png", "jpg", "jpeg"])
+        except Exception:
+            # Some versions of Flet use dialog for save; fall back to default call
+            save_picker.save_file()
+
+    # Action buttons
+    save_btn = ft.IconButton(icon=ft.Icons.DOWNLOAD, tooltip="Save image (.png or .jpg)", disabled=True, on_click=_save)
+
     def update_image_from_selection():
         data = controller.get_selected_png_bytes()
-        if data:
+        has_image = bool(data)
+        if has_image:
             image.src_base64 = base64.b64encode(data).decode("ascii")
             image.visible = True
             status_text.visible = False
@@ -41,6 +85,9 @@ def main(page: ft.Page):
             image.visible = False
             status_text.value = "Drop a .ico file here or use Open..."
             status_text.visible = True
+        # Update Save button enabled state
+        save_btn.disabled = not has_image
+        save_btn.update()
         image.update()
         status_text.update()
 
@@ -100,7 +147,13 @@ def main(page: ft.Page):
     # Build right-side content wrapped into a FileDropTarget
     right_content = ft.Container(
         content=ft.Column([
-            ft.Container(open_btn, alignment=ft.alignment.top_right),
+            ft.Container(
+                ft.Row([
+                    open_btn,
+                    save_btn,
+                ], alignment=ft.MainAxisAlignment.END, spacing=6),
+                alignment=ft.alignment.top_right,
+            ),
             ft.Container(
                 content=ft.Stack(
                     controls=[
