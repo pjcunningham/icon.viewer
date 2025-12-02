@@ -72,16 +72,25 @@ def main(page: ft.Page):
 
     open_btn = ft.IconButton(icon=ft.Icons.FOLDER_OPEN, tooltip="Open .ico", on_click=lambda e: file_picker.pick_files(allow_multiple=False, allowed_extensions=["ico"]))
 
-    # Drag & Drop target for OS files (use page-level on_drop in Flet 0.28.3)
+    # Drag & Drop target for OS files — use FileDropTarget in Flet 0.28.3
     def on_drop(e):
         if getattr(e, "files", None):
-            # Pick the first .ico file among dropped
             for f in e.files:
                 if getattr(f, "path", "").lower().endswith(".ico"):
                     open_icon(f.path)
                     break
 
-    # Build right-side content (no FileDropTarget available in this Flet version)
+    def on_drag_enter(e):
+        status_text.value = "Release to open .ico file..."
+        status_text.visible = True
+        image.visible = False
+        status_text.update()
+        image.update()
+
+    def on_drag_leave(e):
+        update_image_from_selection()
+
+    # Build right-side content wrapped into a FileDropTarget
     right_content = ft.Container(
         content=ft.Column([
             ft.Container(open_btn, alignment=ft.alignment.top_right),
@@ -100,8 +109,31 @@ def main(page: ft.Page):
         expand=True,
     )
 
-    # Register page-level file drop handler
-    page.on_drop = on_drop
+    # Use control-level FileDropTarget if available in this Flet version; otherwise fall back to page-level handlers
+    if hasattr(ft, "FileDropTarget"):
+        right_content = ft.FileDropTarget(
+            content=right_content,
+            on_drop=on_drop,
+            on_drag_enter=on_drag_enter,
+            on_drag_leave=on_drag_leave,
+        )
+        # Clear page-level handlers to avoid duplicate events
+        try:
+            page.on_drop = None
+            # Not all versions support these, so guard with try/except
+            page.on_drag_enter = None  # type: ignore[attr-defined]
+            page.on_drag_leave = None  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    else:
+        # Fallback: register page-level handlers
+        page.on_drop = on_drop
+        try:
+            page.on_drag_enter = on_drag_enter  # type: ignore[attr-defined]
+            page.on_drag_leave = on_drag_leave  # type: ignore[attr-defined]
+        except Exception:
+            # Older Flet might not support drag enter/leave on page; ignore
+            pass
 
     # Layout: left list (fixed width), right takes remaining
     left_pane = ft.Container(
