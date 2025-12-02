@@ -84,7 +84,7 @@ def main(page: ft.Page):
     right_content = ft.Container(
         content=ft.Column([
             ft.Container(open_btn, alignment=ft.alignment.top_right),
-            ft.Container(image, expand=True),
+            ft.Container(image, expand=True, alignment=ft.alignment.center),
             ft.Container(status_text, padding=10),
         ], expand=True),
         expand=True,
