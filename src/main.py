@@ -21,18 +21,19 @@ def main(page: ft.Page):
     # Hide the image by default to avoid Flet showing the placeholder message
     image = ft.Image(expand=True, fit=ft.ImageFit.CONTAIN, visible=False)
 
-    status_text = ft.Text("Drop a .ico file here or use Open...", size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+    status_text = ft.Text("Drop a .ico file here or use Open...", size=12, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER)
 
     def update_image_from_selection():
         data = controller.get_selected_png_bytes()
         if data:
             image.src_base64 = base64.b64encode(data).decode("ascii")
             image.visible = True
-            status_text.value = controller.get_selected_label() or ""
+            status_text.visible = False
         else:
             image.src_base64 = None
             image.visible = False
             status_text.value = "Drop a .ico file here or use Open..."
+            status_text.visible = True
         image.update()
         status_text.update()
 
@@ -84,8 +85,17 @@ def main(page: ft.Page):
     right_content = ft.Container(
         content=ft.Column([
             ft.Container(open_btn, alignment=ft.alignment.top_right),
-            ft.Container(image, expand=True, alignment=ft.alignment.center),
-            ft.Container(status_text, padding=10),
+            ft.Container(
+                content=ft.Stack(
+                    controls=[
+                        ft.Container(image, alignment=ft.alignment.center),
+                        ft.Container(status_text, alignment=ft.alignment.center, padding=10),
+                    ],
+                    expand=True,
+                    alignment=ft.alignment.center,
+                ),
+                expand=True,
+            ),
         ], expand=True),
         expand=True,
     )
