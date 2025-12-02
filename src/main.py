@@ -1,15 +1,22 @@
 import base64
 import flet as ft
+from pathlib import Path
 from typing import Optional
 
 from icon_viewer import IconService, IconViewerController
 
 
 def main(page: ft.Page):
+
     page.title = "Icon Viewer"
     page.window_width = 900
     page.window_height = 600
     page.padding = 0
+
+    # Set window icon early using bytes (reliable across Flet versions)
+    assets_dir = Path(__file__).parent / "assets"  # -> src/assets
+    with open(assets_dir / "icon.png", "rb") as f:
+        page.window_icon = f.read()
 
     service = IconService()
     controller = IconViewerController(service=service)
