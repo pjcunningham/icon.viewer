@@ -109,7 +109,7 @@ def main(page: ft.Page):
             ft.Text("Sizes", weight=ft.FontWeight.BOLD),
             ft.Divider(height=1),
             list_view,
-        ], expand=True, spacing=5, scroll=ft.ScrollMode.ALWAYS),
+        ], expand=True, spacing=5, scroll=ft.ScrollMode.ALWAYS, alignment=ft.MainAxisAlignment.START),
         width=180,
         padding=10,
     )
@@ -122,7 +122,7 @@ def main(page: ft.Page):
                 left_pane,
                 ft.VerticalDivider(width=1),
                 right_pane,
-            ], expand=True),
+            ], expand=True, vertical_alignment=ft.CrossAxisAlignment.START),
             expand=True,
         )
     )
